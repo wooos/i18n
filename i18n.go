@@ -36,6 +36,8 @@ type IL struct {
 	languageTag language.Tag
 }
 
+
+
 type Locale struct {
 	Language string          `json:"language"`
 	Messages []LocaleMessage `json:"messages"`
@@ -77,12 +79,12 @@ func (il *IL) load(tag language.Tag) error {
 	return nil
 }
 
-func (il *IL) Translate(lang string, key string) string {
+func (il *IL) Translate(lang string, format string, args ...string) string {
 	tag := _tag(lang)
 	if err := il.load(tag); err != nil {
 		return ""
 	}
 
 	p := message.NewPrinter(tag)
-	return p.Sprintf(key)
+	return p.Sprintf(format, args)
 }
