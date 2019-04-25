@@ -17,21 +17,23 @@
 package i18n
 
 import (
-	"fmt"
 	"github.com/wooos/i18n/utils/jsonutils"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 var (
-	Chinese = "zh"
-	English = "en"
-
 	_locale Locale
+
+	Matcher = language.NewMatcher([]language.Tag{
+		language.Chinese,
+		language.English,
+	})
 )
 
 type IL struct {
-	defaultLocale string
-	dirPath       string
-	locale        string
+	dirPath     string
+	languageTag language.Tag
 }
 
 type Locale struct {
@@ -40,35 +42,47 @@ type Locale struct {
 }
 
 type LocaleMessage struct {
-	Key       string `json:"ID"`
-	Translate string `json:"translate"`
+	Key     string `json:"id"`
+	Message string `json:"translate"`
 }
 
-func NewLocale(dirPath, lang string) *IL {
-	defaultLocale := dirPath + "/locale." + lang + ".json"
-	j := jsonutils.New()
-	if err := j.Load(defaultLocale, &_locale); err != nil {
-		fmt.Printf("%v\n", err)
+func New(dirPath string) *IL {
+	return &IL{dirPath: dirPath}
+}
+
+func _tag(lang string) language.Tag {
+	t, _ := language.MatchStrings(Matcher, lang)
+	return t
+}
+
+func (il *IL) setLanguageTag(tag language.Tag) error {
+	il.languageTag = tag
+	filename := il.dirPath + "/locale_" + il.languageTag.Parent().String() + ".json"
+	ju := jsonutils.New()
+	if err := ju.Load(filename, &_locale); err != nil {
+		return err
 	}
-	il := &IL{defaultLocale: defaultLocale, dirPath: dirPath, locale: lang}
-	return il
+	return nil
 }
 
-func (il *IL) setLang(lang string) {
-	il.locale = lang
-	defaultLocale := il.dirPath + "/locale." + il.locale + ".json"
-	j := jsonutils.New()
-	j.Load(defaultLocale, &_locale)
-	fmt.Printf("%v\n", defaultLocale)
-	il.defaultLocale = defaultLocale
-}
+func (il *IL) load(tag language.Tag) error {
+	if err := il.setLanguageTag(tag); err != nil {
+		return err
+	}
 
-func (il *IL) Translate(key string, lang string) string {
-	il.setLang(lang)
 	for _, v := range _locale.Messages {
-		if v.Key == key {
-			return v.Translate
-		}
+		message.SetString(tag, v.Key, v.Message)
 	}
-	return ""
+
+	return nil
+}
+
+func (il *IL) Translate(lang string, key string) string {
+	tag := _tag(lang)
+	if err := il.load(tag); err != nil {
+		return ""
+	}
+
+	p := message.NewPrinter(tag)
+	return p.Sprintf(key)
 }
