@@ -26,11 +26,11 @@ The format of locale files is json format.
 
 Here are two simplest locale file examples:
 
-File `locale_en.json`:
+File `locale_en-US.json`:
 
 ```json
 {
-    "language": "en",
+    "language": "en-US",
     "messages": [
         {
             "id": "home",
@@ -40,11 +40,11 @@ File `locale_en.json`:
 }
 ```
 
-File `locale_zh.json`:
+File `locale_zh-CN.json`:
 
 ```json
 {
-    "language": "zh",
+    "language": "zh-CN",
     "messages": [
         {
             "id": "home",
@@ -59,11 +59,10 @@ File `locale_zh.json`:
 Directly use package function to translate:
 
 ```go
-il := i18n.New("conf/locales")
-il.Tr("zh-CN", "home")
+i18n.SetFileMessage("conf/locales/locale_zh-CN.json")
+il.Tr("home")
 ```
 
 Code above will produce correspondingly:
 
-- English `en-US`：`Home`
 - Chinese `zh-CN`：`首页`

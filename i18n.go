@@ -17,74 +17,70 @@
 package i18n
 
 import (
-	"github.com/wooos/i18n/utils/jsonutils"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	"fmt"
+	"github.com/wooos/i18n/utils/json"
 )
-
-var (
-	_locale Locale
-
-	Matcher = language.NewMatcher([]language.Tag{
-		language.Chinese,
-		language.English,
-	})
-)
-
-type IL struct {
-	dirPath     string
-	languageTag language.Tag
-}
-
-
 
 type Locale struct {
-	Language string          `json:"language"`
-	Messages []LocaleMessage `json:"messages"`
+	Lang		string
+	Message		[]LocaleJsonMessage
 }
 
-type LocaleMessage struct {
-	Key     string `json:"id"`
-	Message string `json:"translate"`
+type LocaleJson struct {
+	Language	string		`json:"language"`
+	Messages	[]LocaleJsonMessage	`json:"messages"`
 }
 
-func New(dirPath string) *IL {
-	return &IL{dirPath: dirPath}
+type LocaleJsonMessage struct {
+	ID			string		`json:"id"`
+	Translate	string		`json:"translate"`
 }
 
-func _tag(lang string) language.Tag {
-	t, _ := language.MatchStrings(Matcher, lang)
-	return t
-}
+var (
+	localeJson = &LocaleJson{}
+)
 
-func (il *IL) setLanguageTag(tag language.Tag) error {
-	il.languageTag = tag
-	filename := il.dirPath + "/locale_" + il.languageTag.Parent().String() + ".json"
-	ju := jsonutils.New()
-	if err := ju.Load(filename, &_locale); err != nil {
+// SetFileMessage
+func SetFileMessage(localeFile string) error {
+	_json := json.New()
+	if err := _json.LoadFile(localeFile, localeJson); err != nil {
 		return err
-	}
-	return nil
-}
-
-func (il *IL) load(tag language.Tag) error {
-	if err := il.setLanguageTag(tag); err != nil {
-		return err
-	}
-
-	for _, v := range _locale.Messages {
-		message.SetString(tag, v.Key, v.Message)
 	}
 
 	return nil
 }
 
-func (il *IL) Translate(lang string, format string, args ...string) string {
-	tag := _tag(lang)
-	if err := il.load(tag); err != nil {
-		return ""
+// SetStringMessage
+func SetStringMessage(localeString string) error {
+	_json := json.New()
+	if err := _json.LoadString(localeString, localeJson); err != nil {
+		return err
 	}
 
-	p := message.NewPrinter(tag)
-	return p.Sprintf(format, args)
+	return nil
+}
+
+// SetBytesMessage
+func SetBytesMessage(localeByte []byte) error {
+	_json := json.New()
+	if err := _json.LoadBytes(localeByte, localeJson); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Tr return string
+func Tr(format string, args ...interface{}) string {
+	for _, message := range localeJson.Messages {
+		if message.ID == format {
+			format = message.Translate
+		}
+	}
+
+	if len(args) > 0 {
+		return fmt.Sprintf(format, args...)
+	}
+
+	return format
 }
